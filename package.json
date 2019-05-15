@@ -1,0 +1,19 @@
+{
+  "name": "indebrau-media-proxy",
+  "version": "0.0.1",
+  "repository": "https://github.com/PedeLa/indebrau-mediaProxy",
+  "description": "A proxy for sending images from the media streams to the indebrau backend",
+  "main": "index.js",
+  "dependencies": {
+    "cloudinary": "^1.14.0",
+    "crypto": "^1.0.1",
+    "graphql-request": "^1.8.2",
+    "mjpeg-consumer": "^1.1.0",
+    "request": "^2.88.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0"
+  },
+  "author": "Peter de Lange",
+  "license": "ISC"
+}
