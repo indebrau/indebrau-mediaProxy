@@ -6,24 +6,89 @@ const cloudinary = require('cloudinary').v2;
 const userMail = 'InputUser';
 const userName = 'InputUser';
 const userPw = 'Ewi_g9fTD}Nr%Xj@';
-const backendLocation = 'https://indebrau-backend.herokuapp.com';
-cloudinary.config({
+const backendLocation = 'http://localhost:4000'; //'https://indebrau-backend.herokuapp.com';
+const cacheUpdateInterval = 10; // in seconds
+
+const cloudinaryConfig = {
   cloud_name: 'indebrau',
   api_key: '773223492246879',
-  api_secret: 'FbsQhRkJsyCwjVjRsctty1lzd_4',
-  upload_preset: 'liveImagesMainView'
-});
+  api_secret: 'FbsQhRkJsyCwjVjRsctty1lzd_4'
+};
 
 var graphQLClient = new GraphQLClient(backendLocation);
+var activeMediaStreamsCache = {}; // holds a list of active media streams
+var lastCacheUpdateTimeStamp = null; // last update of cache
 
 async function main() {
-  console.log('startup...');
-  var consumer = new MjpegConsumer();
-  var lastTimeStamp = new Date();
+  // startup process
+  console.log('Startup...');
+  // login or register input user
+  await loginOrRegister();
+  // populate the initial active media streams cache
+  await updateMediaStreamsCache();
+  // pass API key and secret to Cloudinary object
+  cloudinary.config(cloudinaryConfig);
+  console.log('Started!');
+  // finished startup, now register media consumers
 
-  console.log('Register or login user...');
-  let data;
-  let token;
+  // "brewingProcesses/liveImages/mainView" cam device
+  var mainViewConsumer = new MjpegConsumer();
+  var lastTimeStampMainView = new Date();
+  var mainViewMediaStream;
+  request('http://192.168.178.33/')
+    .pipe(mainViewConsumer)
+    .on('data', function(data) {
+      if (new Date() - lastCacheUpdateTimeStamp > cacheUpdateInterval * 1000) {
+        // don't wait for this, might result in 1-2 seconds delayed update (and multiple updates),
+        // which is ok (in comparison to pausing the media processing)
+        updateMediaStreamsCache();
+      }
+      mainViewMediaStream = null; // first set to null...
+      for (var i = 0; i < activeMediaStreamsCache.length; i++) {
+        if (
+          activeMediaStreamsCache[i].name ===
+          'brewingProcesses/liveImages/mainView'
+        ) {
+          // found it
+          mainViewMediaStream = activeMediaStreamsCache[i];
+          break;
+        }
+      }
+      if (!mainViewMediaStream) return; // not in active streams list
+      if (
+        new Date() - lastTimeStampMainView >
+        mainViewMediaStream.updateFrequency * 1000
+      ) {
+        // temporary cache the "old" last time stamp in case of failure with upload
+        let oldLastTimeStampMainView = lastTimeStampMainView;
+        lastTimeStampMainView = new Date();
+
+        cloudinary.uploader
+          .upload_stream({ upload_preset: 'liveImagesMainView' }, function(
+            responseMessage
+          ) {
+            // responseMessage is undefined if upload is successfull
+            if (responseMessage) {
+              console.log('Error Uploading:' + responseMessage);
+              // "reset" timestamp
+              lastTimeStampMainView = oldLastTimeStampMainView;
+            } else {
+              // success
+              console.log(
+                'Uploaded media file to Cloudinary with preset liveImagesMainView at: ' +
+                  lastTimeStampMainView
+              );
+            }
+          })
+          .end(data);
+      }
+    });
+}
+
+main();
+
+async function loginOrRegister() {
+  console.log('Login user...');
   let mutation = /* GraphQL */ `
     mutation signin($email: String!, $password: String!) {
       signin(email: $email, password: $password) {
@@ -36,9 +101,13 @@ async function main() {
     password: userPw
   };
   try {
-    data = await graphQLClient.request(mutation, variables);
-    token = data.signin.token;
-    console.log('Received token: ' + token);
+    let data = await graphQLClient.request(mutation, variables);
+    graphQLClient = new GraphQLClient(backendLocation, {
+      headers: {
+        Authorization: 'Bearer ' + data.signin.token
+      }
+    });
+    console.log('Logged in!');
   } catch (e) {
     console.log('Login not possible, trying to register new user...');
 
@@ -55,44 +124,50 @@ async function main() {
       email: userMail
     };
     try {
-      data = await graphQLClient.request(mutation, variables);
-      token = data.signup.token;
-      console.log('Received token: ' + token);
+      let data = await graphQLClient.request(mutation, variables);
+      graphQLClient = new GraphQLClient(backendLocation, {
+        headers: {
+          Authorization: 'Bearer ' + data.signup.token
+        }
+      });
+      console.log('Registered new user!');
     } catch (e) {
       // No login and signup possible...
       console.log(e);
       process.exit(1);
     }
   }
-
-  // update client variable
-  graphQLClient = new GraphQLClient(backendLocation, {
-    headers: {
-      Authorization: 'Bearer ' + token
-    }
-  });
-  console.log('Starting...');
-
-  // TODO: Get list of active media streams (and maintain!)
-
-  request('http://192.168.178.33/')
-    .pipe(consumer)
-    .on('data', function(data) {
-      let currentTimeStamp = new Date();
-      if (currentTimeStamp - lastTimeStamp > 3000) {
-        lastTimeStamp = new Date();
-        cloudinary.uploader
-          .upload_stream(function(responseMessage) {
-            // responseMessage is undefined if upload is successfull
-            if (responseMessage) {
-              console.log(responseMessage);
-            } else {
-              console.log('uploaded');
-            }
-          })
-          .end(data);
-      }
-    });
 }
 
-main();
+async function updateMediaStreamsCache() {
+  // temporary cache the "old" last time stamp in case of failure with updating
+  let oldLastCacheUpdateTimeStamp = lastCacheUpdateTimeStamp;
+  lastCacheUpdateTimeStamp = new Date();
+  let query = /* GraphQL */ `
+    {
+      mediaStreams(active: true) {
+        id
+        name
+        updateFrequency
+        brewingProcess {
+          id
+        }
+      }
+    }
+  `;
+  try {
+    let data = await graphQLClient.request(query);
+
+    // a bit of data flattening
+    for (let i = 0; i < data.mediaStreams.length; i++) {
+      data.mediaStreams[i].brewingProcess =
+        data.mediaStreams[i].brewingProcess.id;
+    }
+    activeMediaStreamsCache = data.mediaStreams;
+    console.log('Updated cache at: ' + lastCacheUpdateTimeStamp);
+  } catch (e) {
+    // "reset" timestamp
+    lastCacheUpdateTimeStamp = oldLastCacheUpdateTimeStamp;
+    console.log('Error, cache not updated: ' + e);
+  }
+}
