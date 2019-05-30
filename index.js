@@ -35,7 +35,7 @@ async function main() {
   var mainViewConsumer = new MjpegConsumer();
   var lastTimeStampMainView = new Date();
   var mainViewMediaStream;
-  request('http://192.168.178.33/')
+  request('http://192.168.178.28/')
     .pipe(mainViewConsumer)
     .on('data', function(data) {
       if (new Date() - lastCacheUpdateTimeStamp > cacheUpdateInterval * 1000) {
