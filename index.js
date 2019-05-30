@@ -83,7 +83,64 @@ async function main() {
           .end(data);
       }
     });
+
+
+  // "brewingProcesses/liveImages/secondaryView" cam device
+  var secondaryViewConsumer = new MjpegConsumer();
+  var lastTimeStampSecondaryView = new Date();
+  var secondaryViewMediaStream;
+  request('http://192.168.178.34/')
+    .pipe(secondaryViewConsumer)
+    .on('data', function(data) {
+      if (new Date() - lastCacheUpdateTimeStamp > cacheUpdateInterval * 1000) {
+        // don't wait for this, might result in 1-2 seconds delayed update (and multiple updates),
+        // which is ok (in comparison to pausing the media processing)
+        updateMediaStreamsCache();
+      }
+      secondaryViewMediaStream = null; // first set to null...
+      for (var i = 0; i < activeMediaStreamsCache.length; i++) {
+        if (
+          activeMediaStreamsCache[i].name ===
+          'brewingProcesses/liveImages/secondaryView'
+        ) {
+          // found it
+          secondaryViewMediaStream = activeMediaStreamsCache[i];
+          break;
+        }
+      }
+      if (!secondaryViewMediaStream) return; // not in active streams list
+      if (
+        new Date() - lastTimeStampSecondaryView >
+        secondaryViewMediaStream.updateFrequency * 1000
+      ) {
+        // temporary cache the "old" last time stamp in case of failure with upload
+        let oldLastTimeStampSecondaryView = lastTimeStampSecondaryView;
+        lastTimeStampSecondaryView = new Date();
+
+        cloudinary.uploader
+          .upload_stream({ upload_preset: 'liveImagesSecondaryView' }, function(
+            responseMessage
+          ) {
+            // responseMessage is undefined if upload is successfull
+            if (responseMessage) {
+              console.log('Error Uploading:' + responseMessage);
+              // "reset" timestamp
+              lastTimeStampSecondaryView = oldLastTimeStampSecondaryView;
+            } else {
+              // success
+              console.log(
+                'Uploaded media file to Cloudinary with preset liveImagesSecondaryView at: ' +
+                  lastTimeStampSecondaryView
+              );
+            }
+          })
+          .end(data);
+      }
+    });
+
 }
+
+
 
 main();
 
