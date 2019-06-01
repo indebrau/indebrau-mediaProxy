@@ -6,7 +6,7 @@ const cloudinary = require('cloudinary').v2;
 const userMail = 'InputUser';
 const userName = 'InputUser';
 const userPw = 'Ewi_g9fTD}Nr%Xj@';
-const backendLocation = 'http://localhost:4000'; //'https://indebrau-backend.herokuapp.com';
+const backendLocation = 'https://indebrau-backend.herokuapp.com';
 const cacheUpdateInterval = 10; // in seconds
 
 const cloudinaryConfig = {
@@ -35,7 +35,7 @@ async function main() {
   var mainViewConsumer = new MjpegConsumer();
   var lastTimeStampMainView = new Date();
   var mainViewMediaStream;
-  request('http://192.168.178.28/')
+  request('http://192.168.50.156/')
     .pipe(mainViewConsumer)
     .on('data', function(data) {
       if (new Date() - lastCacheUpdateTimeStamp > cacheUpdateInterval * 1000) {
@@ -84,12 +84,11 @@ async function main() {
       }
     });
 
-
   // "brewingProcesses/liveImages/secondaryView" cam device
   var secondaryViewConsumer = new MjpegConsumer();
   var lastTimeStampSecondaryView = new Date();
   var secondaryViewMediaStream;
-  request('http://192.168.178.34/')
+  request('http://192.168.50.157/')
     .pipe(secondaryViewConsumer)
     .on('data', function(data) {
       if (new Date() - lastCacheUpdateTimeStamp > cacheUpdateInterval * 1000) {
@@ -137,10 +136,7 @@ async function main() {
           .end(data);
       }
     });
-
 }
-
-
 
 main();
 
