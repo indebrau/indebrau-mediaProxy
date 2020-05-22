@@ -10,12 +10,12 @@
     "npm": "~6.7.0"
   },
   "dependencies": {
+    "dotenv": "^8.2.0",
     "graphql-request": "1.8.2",
-    "mjpeg-decoder": "1.0.3",
-    "request": "2.88.0"
+    "request": "2.88.2"
   },
   "devDependencies": {
-    "eslint": "6.8.0"
+    "eslint": "7.0.0"
   },
   "author": "Peter de Lange",
   "license": "ISC"
