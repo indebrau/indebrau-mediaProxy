@@ -59,7 +59,7 @@ async function uploadImage() {
   let oldLastTimeStampMainView = lastTimeStampMainView;
   lastTimeStampMainView = new Date();
 
-  request.head('http://192.168.178.40', function(err){
+  request.head('http://192.168.178.40', {timeout: mainViewMediaStream.updateFrequency * 1000}, function(err){
     if (err){
       console.log('error querying camera: ' + err);
       lastTimeStampMainView = oldLastTimeStampMainView;
