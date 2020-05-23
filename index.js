@@ -9,6 +9,7 @@ const userPw = process.env.USERPW;
 const backendLocation = process.env.BACKENDLOCATION;
 const cacheUpdateInterval = process.env.CACHEUPDATEINTERVAL; // in seconds
 const camRequestInterval = process.env.CAMREQUESTINTERVAL; // in seconds
+const backOffInterval = process.env.BACKOFFINTERVAL;
 
 var graphQLClient = new GraphQLClient(backendLocation);
 var authToken = ''; // needed for the image upload, since it uses a different uploader client
@@ -16,6 +17,7 @@ var activeMediaStreamsCache = {}; // holds a list of active media streams
 var lastCacheUpdateTimeStamp = null; // last update of cache
 
 var lastTimeStampMainView = new Date();
+var lastErrorMainView = new Date(); // to back off a little after an error
 
 async function main() {
   // startup process
@@ -38,7 +40,7 @@ async function uploadImage() {
     updateMediaStreamsCache();
   }
 
-  // check if update is needed
+  // check if media stream exists
   let mainViewMediaStream = null;
   for (let i = 0; i < activeMediaStreamsCache.length; i++) {
     if (activeMediaStreamsCache[i].mediaFilesName === 'mainView') {
@@ -49,12 +51,17 @@ async function uploadImage() {
   }
   if (!mainViewMediaStream) return; // no active stream exists for this view
 
-  // check if update is too recent
+  // check if update is too recent or error
   if (new Date() - lastTimeStampMainView <
     mainViewMediaStream.updateFrequency * 1000
+    ||
+    new Date() - lastErrorMainView <
+    backOffInterval * 1000
   ) {
     return;
   }
+  console.log("requesting image");
+
   // temporary cache the "old" last time stamp in case of failure with upload
   let oldLastTimeStampMainView = lastTimeStampMainView;
   lastTimeStampMainView = new Date();
@@ -63,18 +70,21 @@ async function uploadImage() {
     if (err){
       console.log('error querying camera: ' + err);
       lastTimeStampMainView = oldLastTimeStampMainView;
+      lastErrorMainView = new Date();
       return;
     }
     let stream = request('http://192.168.50.160');
     stream.on('error', function(err) {
       console.log('stream request error: ' + err );
       lastTimeStampMainView = oldLastTimeStampMainView;
+      lastErrorMainView = new Date();
       return;
     }).pipe(
       fs.createWriteStream('tempImage.jpg')
         .on('error', function(err){
           console.log('Stream write error: ' + err);
           lastTimeStampMainView = oldLastTimeStampMainView;
+          lastErrorMainView = new Date();
           return;
         })
     ).on('close', function() {
@@ -93,11 +103,13 @@ async function uploadImage() {
       }, function cb(err, httpResponse, identifier) {
         if (err) {
           lastTimeStampMainView = oldLastTimeStampMainView;
-          return console.error('Failed upload:', err);
+          lastErrorMainView = new Date();
+          console.error('Failed upload:', err);
+        } else{
+          // TODO: check, if data was acutally stored on server side
+          // since currently, only correct upload is checked for here
+          console.log('Request send, server returned:', identifier);
         }
-        // TODO: check, if data was acutally stored on server side
-        // since currently, only correct upload is checked for here
-        console.log('Request send, server returned:', identifier);
       });
     });
   });
