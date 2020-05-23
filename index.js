@@ -59,13 +59,13 @@ async function uploadImage() {
   let oldLastTimeStampMainView = lastTimeStampMainView;
   lastTimeStampMainView = new Date();
 
-  request.head('http://192.168.178.40', {timeout: mainViewMediaStream.updateFrequency * 1000}, function(err){
+  request.head('http://192.168.50.160', {timeout: mainViewMediaStream.updateFrequency * 1000}, function(err){
     if (err){
       console.log('error querying camera: ' + err);
       lastTimeStampMainView = oldLastTimeStampMainView;
       return;
     }
-    let stream = request('http://192.168.178.40');
+    let stream = request('http://192.168.50.160');
     stream.on('error', function(err) {
       console.log('stream request error: ' + err );
       lastTimeStampMainView = oldLastTimeStampMainView;
