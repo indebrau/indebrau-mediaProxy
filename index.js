@@ -77,13 +77,14 @@ async function uploadImage(mediaFilesName) {
       fs.createWriteStream(`${mediaFilesName}.jpg`)
         .on('error', function(err){
           console.log(`Stream write error for ${mediaFilesName}: ${err}`);
-          mediaSources[mediaFilesName].lastTimeStamp = oldLastTimeStampMainView;
+
+          [mediaFilesName].lastTimeStamp = oldLastTimeStampMainView;
           mediaSources[mediaFilesName].lastError = new Date();
           return;
         })
     ).on('close', function() {
       let formData = {
-        mediaStreamName: 'mainView',
+        mediaStreamName: mediaFilesName,
         mediaMimeType: 'IMAGE_JPG',
         mediaTimestamp: mediaSources[mediaFilesName].lastTimeStamp.toJSON(),
         mediaData: fs.createReadStream(`${mediaFilesName}.jpg`),
