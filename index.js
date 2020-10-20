@@ -31,7 +31,7 @@ async function main() {
   mediaSourcesAddresses.split(',').forEach(source => {
     source = source.split(':');
     console.log('Setup source at ' + source[1] + '..');
-    let mediaSource = { sourceAddress: source[1], lastTimeStamp: 0, lastError: 0};
+    let mediaSource = { sourceAddress: source[1], lastTimeStamp: 0, lastError: 0 };
     mediaSources[source[0]] = mediaSource;
     setInterval(uploadImage, camRequestInterval * 1000, source[0]);
   });
@@ -67,26 +67,26 @@ async function uploadImage(mediaFilesName) {
   let oldLastTimeStampMainView = mediaSources[mediaFilesName].lastTimeStamp;
   mediaSources[mediaFilesName].lastTimeStamp = new Date();
 
-  request('http://' + mediaSources[mediaFilesName].sourceAddress, {timeout: mediaStream.updateFrequency * 1000})
-    .on('error', function(err) {
+  request('http://' + mediaSources[mediaFilesName].sourceAddress, { timeout: mediaStream.updateFrequency * 1000 })
+    .on('error', function (err) {
       console.log(`Stream request error for ${mediaFilesName}: ${err}`);
       mediaSources[mediaFilesName].lastTimeStamp = oldLastTimeStampMainView;
       mediaSources[mediaFilesName].lastError = new Date();
       return;
     }).pipe(
       fs.createWriteStream(`${mediaFilesName}.jpg`)
-        .on('error', function(err){
+        .on('error', function (err) {
           console.log(`Stream write error for ${mediaFilesName}: ${err}`);
 
           [mediaFilesName].lastTimeStamp = oldLastTimeStampMainView;
           mediaSources[mediaFilesName].lastError = new Date();
           return;
         })
-    ).on('close', function() {
+    ).on('close', function () {
       let formData = {
         mediaStreamName: mediaFilesName,
         mediaMimeType: 'IMAGE_JPG',
-        mediaTimestamp: mediaSources[mediaFilesName].lastTimeStamp.toJSON(),
+        mediaTimeStamp: mediaSources[mediaFilesName].lastTimeStamp.toJSON(),
         mediaData: fs.createReadStream(`${mediaFilesName}.jpg`),
       };
       request.post({
@@ -100,8 +100,8 @@ async function uploadImage(mediaFilesName) {
           mediaSources[mediaFilesName].lastTimeStamp = oldLastTimeStampMainView;
           mediaSources[mediaFilesName].lastError = new Date();
           console.log(`Failed upload for ${mediaFilesName}: ${err}`);
-        } else{
-        // TODO: check, if data was acutally stored on server, only correct upload is checked for here
+        } else {
+          // TODO: check, if data was acutally stored on server, only correct upload is checked for here
           console.log(`File for ${mediaFilesName} send, server returned identifier: ${identifier}`);
         }
       });
