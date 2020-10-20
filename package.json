@@ -5,13 +5,10 @@
   "repository": "https://github.com/PedeLa/indebrau-mediaProxy",
   "description": "A proxy for sending images from the media streams to the indebrau backend",
   "main": "index.js",
-  "engines": {
-    "node": "~11.10.0",
-    "npm": "~6.7.0"
-  },
   "dependencies": {
     "dotenv": "8.2.0",
     "graphql-request": "3.2.0",
+    "graphql": "15.3.0",
     "request": "2.88.2"
   },
   "devDependencies": {
