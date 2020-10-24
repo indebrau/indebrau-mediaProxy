@@ -77,7 +77,6 @@ async function uploadImage(mediaFilesName) {
       fs.createWriteStream(`${mediaFilesName}.jpg`)
         .on('error', function (err) {
           console.log(`Stream write error for ${mediaFilesName}: ${err}`);
-
           [mediaFilesName].lastTimeStamp = oldLastTimeStampMainView;
           mediaSources[mediaFilesName].lastError = new Date();
           return;
@@ -172,7 +171,7 @@ async function updateMediaStreamsCache() {
         id
         mediaFilesName
         updateFrequency
-        brewingProcess {
+        brewingStep {
           id
         }
       }
@@ -182,8 +181,8 @@ async function updateMediaStreamsCache() {
     let data = await graphQLClient.request(query);
     // a bit of data flattening
     for (let i = 0; i < data.mediaStreams.length; i++) {
-      data.mediaStreams[i].brewingProcess =
-        data.mediaStreams[i].brewingProcess.id;
+      data.mediaStreams[i].brewingStep =
+        data.mediaStreams[i].brewingStep.id;
     }
     activeMediaStreamsCache = data.mediaStreams;
     console.log(`Updated cache at: ${lastCacheUpdateTimeStamp}`);

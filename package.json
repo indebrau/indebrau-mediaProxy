@@ -1,6 +1,6 @@
 {
   "name": "indebrau-media-proxy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "repository": "https://github.com/PedeLa/indebrau-mediaProxy",
   "description": "A proxy for sending images from the media streams to the indebrau backend",
@@ -12,7 +12,7 @@
     "request": "2.88.2"
   },
   "devDependencies": {
-    "eslint": "7.11.0"
+    "eslint": "7.12.0"
   },
   "author": "Peter de Lange",
   "license": "ISC"
